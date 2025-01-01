@@ -31,7 +31,7 @@ echo "obj-m:=$bbr_obj" > Makefile
 echo "$include_path" >> Makefile
 make -C /lib/modules/$(uname -r)/build M=`pwd` modules CC=/usr/bin/gcc
 
-if [ ! -f "./$bbr_kernelobj"]; then
+if [ ! -f "./$bbr_kernelobj" ]; then
     echo "Build failed, please check your environment"
     exit 1
 fi
@@ -39,11 +39,13 @@ fi
 echo "===== Start Installation: $bbr_file ====="
 
 cp $bbr_kernelobj /lib/modules/$(uname -r)/kernel/drivers/
-echo "$bbr_file" | sudo tee -a /etc/modules
+if ! grep -Fxq "$bbr_file" /etc/modules; then
+    echo "$bbr_file" | tee -a /etc/modules
+fi
 depmod
 modprobe "$bbr_file"
-echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-echo "net.ipv4.tcp_congestion_control=$algo" >> /etc/sysctl.conf
+sed -i '/net.ipv4.tcp_congestion_control/d' /etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control = $algo" >> /etc/sysctl.conf
 sysctl -p
 
 ret=$?
